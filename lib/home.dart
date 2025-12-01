@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:mshawer/auth/login.dart';
-import 'package:mshawer/profile.dart';
-import 'package:mshawer/setting.dart';
 import 'package:mshawer/widgets/category_card.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'categories/dm/categories_dm.dart';
+import 'categories/category_details.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,6 +22,15 @@ class _HomeScreenState extends State<HomeScreen> {
     await _supabase.auth.signOut();
     print("LogOut Successfully");
     Navigator.pushReplacementNamed(context, LoginScreen.routeName);
+  }
+
+  Future<List<Category>> fetchCategories() async {
+    final response = await _supabase.from('categories').select();
+
+    // تحويل النتيجة لقائمة Category
+    return (response as List<dynamic>)
+        .map((c) => Category.fromMap(c as Map<String, dynamic>))
+        .toList();
   }
 
   @override
@@ -84,44 +94,42 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: Colors.black87,
                 ),
               ),
-              GridView.count(
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                crossAxisSpacing: 2,
-                mainAxisSpacing: 2,
-                children: [
-                  CategoryCard(
-                    icon: FontAwesomeIcons.basketShopping,
-                    onPressed: () {},
-                    text: 'Supermarket',
-                  ),
-                  CategoryCard(
-                    icon: FontAwesomeIcons.burger,
-                    onPressed: () {},
-                    text: 'Restaurant',
-                  ),
-                  CategoryCard(
-                    icon: FontAwesomeIcons.capsules,
-                    onPressed: () {},
-                    text: 'Pharmacy',
-                  ),
-                  CategoryCard(
-                    icon: FontAwesomeIcons.breadSlice,
-                    onPressed: () {},
-                    text: 'Bakery',
-                  ),
-                  CategoryCard(
-                    icon: FontAwesomeIcons.cakeCandles,
-                    onPressed: () {},
-                    text: 'Sweets',
-                  ),
-                  CategoryCard(
-                    icon: FontAwesomeIcons.mortarPestle,
-                    onPressed: () {},
-                    text: '3tara',
-                  ),
-                ],
+              FutureBuilder<List<Category>>(
+                future: fetchCategories(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return Center(child: Text('No categories found'));
+                  }
+                  final categories = snapshot.data!;
+                  return GridView.count(
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                    children:
+                        categories.map((cat) {
+                          return CategoryCard(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (_) =>
+                                          CategoryDetailScreen(category: cat),
+                                ),
+                              );
+                            },
+                            imageUrl: cat.imageUrl,
+                            text: cat.name,
+                          );
+                        }).toList(),
+                  );
+                },
               ),
             ],
           ),
