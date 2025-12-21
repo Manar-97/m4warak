@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../auth/auth_wrapper.dart';
 
-import 'auth/auth_wrapper.dart';
-
-class SettingScreen extends StatelessWidget {
-  const SettingScreen({super.key});
-  static const String routeName = 'setting';
+class DriverSettingScreen extends StatelessWidget {
+  const DriverSettingScreen({super.key});
+  static const String routeName = 'driversetting';
 
   void _signOut(BuildContext context) async {
     // تسجيل الخروج من Supabase
@@ -23,7 +22,7 @@ class SettingScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('الإعدادات'),
-        backgroundColor: Colors.teal,
+        backgroundColor: Colors.indigo.shade800,
         foregroundColor: Colors.white,
       ),
       body: Padding(
@@ -32,7 +31,10 @@ class SettingScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             ListTile(
-              leading: const Icon(Icons.vpn_key_outlined, color: Colors.teal),
+              leading: Icon(
+                Icons.vpn_key_outlined,
+                color: Colors.indigo.shade800,
+              ),
               title: const Text('تغيير كلمة المرور'),
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: () {
@@ -45,7 +47,7 @@ class SettingScreen extends StatelessWidget {
             ),
             const Divider(),
             ListTile(
-              leading: const Icon(Icons.info_outline, color: Colors.teal),
+              leading: Icon(Icons.info_outline, color: Colors.indigo.shade800),
               title: const Text('حول التطبيق'),
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: () {

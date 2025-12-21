@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'auth/auth_wrapper.dart';
 
-class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
-  static const String routeName = 'profile';
+import '../auth/auth_wrapper.dart';
+
+class DriverProfileScreen extends StatefulWidget {
+  const DriverProfileScreen({super.key});
+  static const String routeName = 'driverprofile';
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  State<DriverProfileScreen> createState() => _DriverProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _DriverProfileScreenState extends State<DriverProfileScreen> {
   final _supabase = Supabase.instance.client;
   Map<String, dynamic>? userProfile;
   bool _isLoading = true;
@@ -78,13 +79,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('الملف الشخصي'),
-        backgroundColor: Colors.teal,
+        backgroundColor: Colors.indigo.shade800,
         foregroundColor: Colors.white,
       ),
       body:
           _isLoading
-              ? const Center(
-                child: CircularProgressIndicator(color: Colors.teal),
+              ? Center(
+                child: CircularProgressIndicator(color: Colors.indigo.shade800),
               )
               : userProfile == null
               ? Center(
@@ -129,7 +130,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             color:
                                 userProfile!['role'] == 'driver'
                                     ? Colors.blue.shade100
-                                    : Colors.teal.shade100,
+                                    : Colors.indigo.shade100,
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
@@ -138,7 +139,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               color:
                                   userProfile!['role'] == 'driver'
                                       ? Colors.blue.shade800
-                                      : Colors.teal.shade800,
+                                      : Colors.indigo.shade800,
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
                             ),
@@ -150,12 +151,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const Divider(),
                   ListTile(
-                    leading: const Icon(Icons.phone, color: Colors.teal),
+                    leading: Icon(Icons.phone, color: Colors.indigo.shade800),
                     title: const Text('رقم الهاتف'),
                     subtitle: Text(userProfile!['phone'] ?? 'لم يحدد'),
                   ),
                   ListTile(
-                    leading: const Icon(Icons.email, color: Colors.teal),
+                    leading: Icon(Icons.email, color: Colors.indigo.shade800),
                     title: const Text('البريد الإلكتروني'),
                     subtitle: Text(
                       _supabase.auth.currentUser?.email ?? 'غير متوفر',

@@ -1,76 +1,50 @@
 import 'package:flutter/material.dart';
 
 class CategoryCard extends StatelessWidget {
+  final String text;
+  final IconData icon;
+  final Color iconColor;
+  final VoidCallback onPressed;
+
   const CategoryCard({
     super.key,
-    required this.onPressed,
     required this.text,
-    required this.imageUrl,
+    required this.icon,
+    required this.onPressed,
+    this.iconColor = Colors.teal,
   });
-
-  final Function() onPressed;
-  final String text;
-  final String imageUrl;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return InkWell(
       onTap: onPressed,
+      borderRadius: BorderRadius.circular(15),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.yellow,
-          borderRadius: BorderRadius.circular(18),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 8,
+              color: Colors.grey.withOpacity(0.15),
+              spreadRadius: 2,
+              blurRadius: 5,
               offset: const Offset(0, 3),
             ),
           ],
         ),
-        padding: const EdgeInsets.all(5),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // الصورة
-            Container(
-              height: 150,
-              width: 150,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Image.network(
-                      'https://cdn.pixabay.com/photo/2019/03/13/11/07/supermarket-4052658_1280.jpg',
-                      height: 70,
-                      width: 70,
-                      fit: BoxFit.cover,
-                    );
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(height: 5),
-            // الاسم
+            Icon(icon, size: 50, color: iconColor),
+            const SizedBox(height: 10),
             Text(
               text,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],

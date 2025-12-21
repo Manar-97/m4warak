@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:mshawer/profile.dart';
-import 'package:mshawer/setting.dart';
-import 'home.dart';
+import 'driver_home.dart';
+import 'driver_profile.dart';
+import 'driver_setting.dart';
 
-class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
-  static const String routeName = 'main';
+class MainDriverScreen extends StatefulWidget {
+  const MainDriverScreen({super.key});
+  static const String routeName = 'maindriver';
   @override
-  State<MainScreen> createState() => _MainScreenState();
+  State<MainDriverScreen> createState() => _MainDriverScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainDriverScreenState extends State<MainDriverScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> screens = [HomeScreen(), ProfileScreen(), SettingScreen()];
+  final List<Widget> screens = [
+    DriverHomeScreen(),
+    DriverProfileScreen(),
+    DriverSettingScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {

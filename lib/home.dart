@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:mshawer/auth/login.dart';
-import 'package:mshawer/widgets/category_card.dart';
+import 'package:mshawer/customer/customer_notifications.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-import 'categories/dm/categories_dm.dart';
-import 'categories/category_details.dart';
+import 'package:mshawer/widgets/category_card.dart';
+import 'package:mshawer/new_task_request_screen.dart';
+import 'tasks/customer_tracking.dart';
+import 'driver/driver_tasks.dart'; // نحتاج للمسار عند تسجيل الخروج
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,125 +15,367 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _supabase = Supabase.instance.client;
-  String searchText = "";
+  String displayName = "مستخدم";
+  String userRole = "client";
+  bool _isUserDataLoading = true; // حالة لتحميل بيانات الاسم والدور
 
-  Future<void> logout() async {
-    await _supabase.auth.signOut();
-    print("LogOut Successfully");
-    Navigator.pushReplacementNamed(context, LoginScreen.routeName);
+  late final List<Map<String, dynamic>> services;
+
+  @override
+  void initState() {
+    super.initState();
+    loadUserData();
+    // تهيئة قائمة الخدمات
+    services = [
+      {
+        'name': 'توصيل واستلام أوردر فوري',
+        'code': 'delivery',
+        'icon': Icons.flash_on,
+        'color': Colors.red.shade700,
+        'action':
+            () =>
+                _navigateToTaskRequest('توصيل واستلام أوردر فوري', 'delivery'),
+      },
+      {
+        'name': 'توصيل وشراء جميع طلبات المنزل',
+        'code': 'delivery',
+        'icon': Icons.shopping_bag,
+        'color': Colors.green.shade700,
+        'action':
+            () => _navigateToTaskRequest(
+              'توصيل وشراء جميع طلبات المنزل',
+              'delivery',
+            ),
+      },
+      {
+        'name': 'حجز تذاكر قطار',
+        'code': 'ticketing',
+        'icon': Icons.train,
+        'color': Colors.blue.shade700,
+        'action': () => _navigateToTaskRequest('حجز تذاكر قطار', 'ticketing'),
+      },
+      {
+        'name': 'حجز كشف الدكتور في نجح حمادي',
+        'code': 'health',
+        'icon': Icons.medical_services,
+        'color': Colors.purple.shade700,
+        'action':
+            () => _navigateToTaskRequest(
+              'حجز كشف الدكتور في نجح حمادي',
+              'health',
+            ),
+      },
+      {
+        'name': 'روشتة علاجك لحد بيتك',
+        'code': 'health',
+        'icon': Icons.local_pharmacy,
+        'color': Colors.orange.shade700,
+        'action':
+            () => _navigateToTaskRequest('روشتة علاجك لحد بيتك', 'health'),
+      },
+      {
+        'name': 'توصيل الأبناء للمدرسة او الدرس او تمرين',
+        'code': 'escort',
+        'icon': Icons.school,
+        'color': Colors.teal.shade700,
+        'action':
+            () => _navigateToTaskRequest(
+              'توصيل الأبناء للمدرسة او الدرس او تمرين',
+              'escort',
+            ),
+      },
+      {
+        'name': 'طلب مشوار بالسيارة',
+        'code': 'custom',
+        'icon': Icons.drive_eta,
+        'color': Colors.teal.shade400,
+        'action': () => _navigateToTaskRequest('طلب مشوار بالسيارة', 'custom'),
+      },
+      {
+        'name': 'سجل الطلبات',
+        'code': 'custom',
+        'icon': Icons.history,
+        'color': Colors.grey.shade600,
+        'action': () => _showComingSoon('سجل الطلبات'),
+      },
+    ];
   }
 
-  Future<List<Category>> fetchCategories() async {
-    final response = await _supabase.from('categories').select();
+  // دالة مضافة: للتحقق من وجود طلب نشط للعميل الحالي
+  Future<int?> _checkForActiveTask(String userId, SupabaseClient client) async {
+    try {
+      // حالات الطلب النشط التي يجب على العميل تتبعها
+      final activeStatuses = [
+        'pending',
+        'accepted',
+        'reached_pickup',
+        'picked_up',
+      ];
 
-    // تحويل النتيجة لقائمة Category
-    return (response as List<dynamic>)
-        .map((c) => Category.fromMap(c as Map<String, dynamic>))
-        .toList();
+      final response =
+          await client
+              .from('tasks')
+              .select('id')
+              .eq('customer_id', userId)
+              .inFilter('status', activeStatuses)
+              .limit(1)
+              .maybeSingle();
+
+      if (response != null && response.isNotEmpty) {
+        return response['id']; // إرجاع Task ID
+      }
+      return null;
+    } catch (e) {
+      print('Error checking for active task: $e');
+      // إذا حدث خطأ، نتجاهله ونفترض عدم وجود مهمة نشطة للسماح بالاستمرار
+      return null;
+    }
+  }
+
+  void _navigateToTaskRequest(String serviceName, String serviceCode) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => NewTaskRequestScreen(
+              serviceName: serviceName,
+              serviceCode: serviceCode,
+            ),
+      ),
+    );
+  }
+
+  void _showComingSoon(String serviceName) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('خدمة $serviceName قريباً!')));
+  }
+
+  Future<void> loadUserData() async {
+    final user = _supabase.auth.currentUser;
+    if (user != null) {
+      try {
+        final response =
+            await _supabase
+                .from('profiles')
+                .select('full_name, role')
+                .eq('id', user.id)
+                .single();
+
+        setState(() {
+          displayName = response['full_name'] as String? ?? "عميل";
+          userRole = response['role'] as String? ?? "client";
+          _isUserDataLoading = false;
+        });
+
+        // إذا قام المستخدم بالتحايل أو تم تسجيله بالخطأ كـ 'driver' وتم توجيهه هنا،
+        // يجب إعادته لشاشة السائق
+        if (userRole == 'driver' && mounted) {
+          Navigator.of(context).pushReplacementNamed(
+            DriverTasksScreen.routeName, // يجب التأكد من استيرادها لاحقاً
+          );
+        }
+      } on PostgrestException catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('خطأ في جلب بيانات المستخدم: ${e.message}')),
+          );
+          setState(() {
+            _isUserDataLoading = false;
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _isUserDataLoading = false;
+          });
+        }
+      }
+    }
+  }
+
+  String getRoleText() {
+    return userRole == 'driver' ? 'مُشاوِر (سائق)' : 'عميل';
+  }
+
+  // ويدجت شريط التطبيق
+  AppBar _buildAppBar() {
+    return AppBar(
+      title: const Text(
+        'العميل',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+      centerTitle: true,
+      backgroundColor: Colors.teal,
+      foregroundColor: Colors.white,
+      actions: [
+        IconButton(
+          onPressed: () {
+            Navigator.pushNamed(context, CustomerNotificationsScreen.routeName);
+          },
+          icon: Icon(Icons.notifications),
+        ),
+      ],
+    );
+  }
+
+  // ويدجت محتوى الشاشة (قائمة الخدمات)
+  Widget _buildServiceList() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'أهلاً بك، $displayName 👋',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                ),
+                textDirection: TextDirection.rtl,
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color:
+                      userRole == 'driver'
+                          ? Colors.blue.shade100
+                          : Colors.teal.shade100,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  getRoleText(),
+                  style: TextStyle(
+                    color:
+                        userRole == 'driver'
+                            ? Colors.blue.shade800
+                            : Colors.teal.shade800,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 15),
+          TextField(
+            onChanged: (value) {},
+            decoration: InputDecoration(
+              hintText: 'إيه المشوار اللي محتاج تخلصه دلوقتي؟',
+              prefixIcon: const Icon(Icons.search, color: Colors.teal),
+              filled: true,
+              fillColor: Colors.grey.shade100,
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 12,
+                horizontal: 16,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            textAlign: TextAlign.right,
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'الخدمات المطلوبة',
+            style: TextStyle(
+              fontSize: 25,
+              fontWeight: FontWeight.w700,
+              color: Colors.black87,
+            ),
+            textAlign: TextAlign.right,
+          ),
+          const SizedBox(height: 10),
+
+          GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 0.8,
+            children:
+                services.map((service) {
+                  return CategoryCard(
+                    onPressed: service['action'] as VoidCallback,
+                    icon: service['icon'] as IconData,
+                    iconColor: service['color'] as Color,
+                    text: service['name'] as String,
+                  );
+                }).toList(),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: IconButton(
-              onPressed: logout,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.yellow,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(30)),
-                ),
-              ),
-              icon: Icon(Icons.logout, color: Colors.black),
+    final currentUser = _supabase.auth.currentUser;
+    if (currentUser == null || _isUserDataLoading) {
+      return Scaffold(
+        appBar: _buildAppBar(),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return FutureBuilder<int?>(
+      future: _checkForActiveTask(currentUser.id, _supabase),
+      builder: (context, snapshot) {
+        int? activeTaskId = snapshot.data;
+        return Scaffold(
+          appBar: _buildAppBar(),
+          body: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                if (activeTaskId != null)
+                  InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) =>
+                                  CustomerTrackingScreen(taskId: activeTaskId),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.yellow.shade700,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: const [
+                          Text(
+                            'لديك طلب شغّال! اضغط هنا للتتبع',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Icon(Icons.arrow_forward_ios, color: Colors.white),
+                        ],
+                      ),
+                    ),
+                  ),
+                Expanded(child: _buildServiceList()),
+              ],
             ),
           ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Hello, Manar',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-              TextField(
-                onChanged: (value) {
-                  setState(() {
-                    searchText = value;
-                  });
-                },
-                decoration: InputDecoration(
-                  hintText: 'Search...',
-                  prefixIcon: const Icon(Icons.search),
-                  filled: true,
-                  fillColor: Colors.grey.shade200,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              Image.asset('assets/images/logoo.png'),
-              Text(
-                'Categories',
-                style: const TextStyle(
-                  fontSize: 25,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-              FutureBuilder<List<Category>>(
-                future: fetchCategories(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(child: Text('No categories found'));
-                  }
-                  final categories = snapshot.data!;
-                  return GridView.count(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                    children:
-                        categories.map((cat) {
-                          return CategoryCard(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder:
-                                      (_) =>
-                                          CategoryDetailScreen(category: cat),
-                                ),
-                              );
-                            },
-                            imageUrl: cat.imageUrl,
-                            text: cat.name,
-                          );
-                        }).toList(),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

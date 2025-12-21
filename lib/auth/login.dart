@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:mshawer/auth/signup.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mshawer/main_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-import '../home.dart';
+import '../driver/driver_tasks.dart';
+import 'signup.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,66 +16,97 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _supabase = Supabase.instance.client;
+  bool _isLoading = false;
 
-  Future<void> signIn() async {
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _showSnackBar(String message, {Color color = Colors.red}) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message, textAlign: TextAlign.right),
+          backgroundColor: color,
+        ),
+      );
+    }
+  }
+
+  // 1. دالة التوجيه بناءً على الدور
+  void _redirectUser(String role) {
+    if (!mounted) return;
+    if (role == 'driver') {
+      Navigator.of(context).pushReplacementNamed(DriverTasksScreen.routeName);
+    } else if (role == 'client') {
+      // التوجيه لشاشة العميل
+      Navigator.of(context).pushReplacementNamed(MainScreen.routeName);
+    } else {
+      // دور غير معروف أو غير موجود، نعود لشاشة الدخول
+      _showSnackBar('خطأ: دور مستخدم غير معروف.', color: Colors.orange);
+      setState(() => _isLoading = false);
+    }
+  }
+
+  // 2. جلب الدور بعد تسجيل الدخول
+  Future<void> _fetchAndRedirectUser(String userId) async {
     try {
-      final response = await _supabase.auth.signInWithPassword(
+      final response =
+          await _supabase
+              .from('profiles')
+              .select('role')
+              .eq('id', userId)
+              .single();
+
+      final role = response['role'] as String?;
+      if (role != null) {
+        _redirectUser(role);
+      } else {
+        _showSnackBar(
+          'خطأ: لم يتم العثور على دور المستخدم في ملفه الشخصي.',
+          color: Colors.orange,
+        );
+      }
+    } catch (e) {
+      _showSnackBar(
+        'خطأ في جلب الملف الشخصي: ${e.toString()}',
+        color: Colors.orange,
+      );
+    }
+  }
+
+  // 3. دالة تسجيل الدخول الرئيسية
+  Future<void> signIn() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      _showSnackBar("الرجاء إدخال البريد الإلكتروني وكلمة المرور.");
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final AuthResponse response = await _supabase.auth.signInWithPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
       final user = response.user;
-      if (user == null) {
-        showDialog(
-          context: context,
-          builder:
-              (_) => AlertDialog(
-                title: Text("Login Error"),
-                content: Text("Please confirm your email before logging in."),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text("OK"),
-                  ),
-                ],
-              ),
-        );
-        return;
+      if (user != null) {
+        await _fetchAndRedirectUser(user.id);
+        // سيتم إيقاف التحميل في _redirectUser
       }
-
-      // إذا كان المستخدم Driver، نتأكد من وجود سجل في جدول drivers
-      final driverCheck =
-          await _supabase
-              .from('drivers')
-              .select()
-              .eq('id', user.id)
-              .maybeSingle();
-
-      if (driverCheck == null &&
-          (user.userMetadata?['user_type'] == 'driver')) {
-        await _supabase.from("drivers").insert({
-          "id": user.id,
-          "active": false,
-        });
-      }
-
-      Navigator.pushReplacementNamed(context, HomeScreen.routeName);
+    } on AuthException catch (e) {
+      _showSnackBar("خطأ في المصادقة: ${e.message}");
+      if (mounted) setState(() => _isLoading = false);
     } catch (e) {
-      final message = e is AuthException ? e.message : e.toString();
-      showDialog(
-        context: context,
-        builder:
-            (_) => AlertDialog(
-              title: Text("Error"),
-              content: Text(message),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text("OK"),
-                ),
-              ],
-            ),
-      );
+      _showSnackBar("حدث خطأ غير متوقع: ${e.toString()}");
+      if (mounted) setState(() => _isLoading = false);
+    }
+    // لا نضع finally هنا، لأن التوجيه سيحدث داخل try
+    if (mounted && _isLoading) {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -85,74 +115,83 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: Center(
         child: Padding(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Login',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  'تسجيل الدخول',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                   textAlign: TextAlign.center,
                 ),
-
-                Image.asset('assets/images/logoo.png'),
-
-                SizedBox(height: 25),
-
+                //  <--- افتراضي أن لديك صورة شعار
+                const SizedBox(height: 25),
                 // EMAIL FIELD
                 TextField(
                   controller: _emailController,
                   decoration: InputDecoration(
-                    labelText: "E-mail",
+                    labelText: "البريد الإلكتروني",
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    prefixIcon: Icon(Icons.email),
+                    prefixIcon: const Icon(Icons.email),
                   ),
+                  textAlign: TextAlign.right,
                 ),
-
-                SizedBox(height: 15),
-
+                const SizedBox(height: 15),
                 // PASSWORD FIELD
                 TextField(
                   controller: _passwordController,
                   decoration: InputDecoration(
-                    labelText: "Password",
+                    labelText: "كلمة المرور",
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    prefixIcon: Icon(Icons.lock),
+                    prefixIcon: const Icon(Icons.lock),
                   ),
                   obscureText: true,
+                  textAlign: TextAlign.right,
                 ),
-
-                SizedBox(height: 40),
-
+                const SizedBox(height: 40),
                 ElevatedButton(
-                  onPressed: signIn,
+                  onPressed: _isLoading ? null : signIn,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    padding: EdgeInsets.symmetric(vertical: 15),
+                    backgroundColor: Colors.teal,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: Text("Login", style: TextStyle(color: Colors.white)),
+                  child:
+                      _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                            "دخول",
+                            style: TextStyle(color: Colors.white, fontSize: 18),
+                          ),
                 ),
-
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
 
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text("Don't have an account? "),
+                    const Text("ليس لديك حساب؟ "),
                     GestureDetector(
-                      child: Text(
-                        "SignUp",
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                      child: const Text(
+                        "سجل الآن",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.teal,
+                        ),
                       ),
                       onTap: () {
-                        Navigator.pushNamed(context, SignUpScreen.routeName);
+                        Navigator.pushReplacementNamed(
+                          context,
+                          SignUpScreen.routeName,
+                        );
                       },
                     ),
                   ],

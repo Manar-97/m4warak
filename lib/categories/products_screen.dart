@@ -54,6 +54,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                 onPressed: () {
                   print('product ${products.name} clicked');
                 },
+                onAddToCart: () {},
               );
             },
           );

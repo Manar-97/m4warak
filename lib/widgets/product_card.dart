@@ -6,9 +6,10 @@ class ProductCard extends StatelessWidget {
     super.key,
     required this.onPressed,
     required this.product,
+    required this.onAddToCart,
   });
-
   final Function() onPressed;
+  final Function() onAddToCart;
   final Product product;
 
   @override
@@ -54,14 +55,31 @@ class ProductCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 4),
-                  Text(
+                  const Text(
                     "LE",
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                 ],
+              ),
+              const SizedBox(height: 16),
+              // --- Add to cart button ---
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: onAddToCart,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.yellow[200],
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: const Text(
+                    "Add to Cart",
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                ),
               ),
             ],
           ),
