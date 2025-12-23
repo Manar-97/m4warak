@@ -99,28 +99,54 @@ class _DriverTasksScreenState extends State<DriverTasksScreen> {
     );
   }
 
-  void _signOut() async {
-    await _supabase.auth.signOut();
-    if (mounted) {
-      Navigator.of(
-        context,
-      ).pushNamedAndRemoveUntil(AuthWrapper.routeName, (route) => false);
+  Future<void> _rejectTask(TaskDM task) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) {
+      _showSnackBar('الرجاء تسجيل الدخول كسائق');
+      return;
+    }
+
+    try {
+      // ببساطة نحدث السطر ليصبح "rejected" أو "cancelled_by_driver"
+      final response =
+          await _supabase
+              .from('tasks')
+              .update(
+                {'status': 'cancelled'},
+              ) // ممكن تعمل "rejected" لو حابة تفرق بين الإلغاء من العميل والسائق
+              .eq('id', task.id!)
+              .eq('status', 'pending')
+              .select();
+
+      if (response.isEmpty) {
+        _showSnackBar('المهمة لم تعد متاحة', color: Colors.orange);
+        return;
+      }
+
+      // إزالة المهمة من القائمة فور رفضها
+      if (mounted) {
+        setState(() {
+          _tasks.removeWhere((t) => t.id == task.id);
+        });
+      }
+
+      _showSnackBar('تم رفض المهمة بنجاح', color: Colors.grey);
+    } catch (e) {
+      _showSnackBar('حدث خطأ أثناء رفض المهمة');
+      print('Error rejecting task: $e');
     }
   }
 
+  @override
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
           'المهام المتاحة',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         backgroundColor: Colors.indigo.shade800,
-        centerTitle: true,
-        actions: [
-          IconButton(onPressed: _signOut, icon: const Icon(Icons.logout)),
-        ],
       ),
       body:
           _loading
@@ -132,17 +158,29 @@ class _DriverTasksScreenState extends State<DriverTasksScreen> {
                   style: TextStyle(fontSize: 18),
                 ),
               )
-              : ListView.builder(
-                padding: const EdgeInsets.all(10),
-                itemCount: _tasks.length,
-                itemBuilder: (context, index) {
-                  final task = _tasks[index];
-                  return TaskCard(
-                    task: task,
-                    distance: _calculateDistance(task),
-                    onAccept: () => _acceptTask(task),
-                  );
+              : RefreshIndicator(
+                onRefresh: () async {
+                  // لتحديث المهام، نعيد استدعاء الاشتراك
+                  setState(() {
+                    _loading = true;
+                  });
+                  await Future.delayed(const Duration(milliseconds: 500));
+                  _subscribeTasks(); // هذا سيجلب المهام مرة أخرى
                 },
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(10),
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  itemCount: _tasks.length,
+                  itemBuilder: (context, index) {
+                    final task = _tasks[index];
+                    return TaskCard(
+                      task: task,
+                      distance: _calculateDistance(task),
+                      onAccept: () => _acceptTask(task),
+                      onReject: () => _rejectTask(task),
+                    );
+                  },
+                ),
               ),
     );
   }

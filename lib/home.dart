@@ -3,7 +3,7 @@ import 'package:mshawer/customer/customer_notifications.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mshawer/widgets/category_card.dart';
 import 'package:mshawer/new_task_request_screen.dart';
-import 'tasks/customer_tracking.dart';
+import 'categories/dm/task_dm.dart';
 import 'driver/driver_tasks.dart'; // نحتاج للمسار عند تسجيل الخروج
 
 class HomeScreen extends StatefulWidget {
@@ -91,43 +91,34 @@ class _HomeScreenState extends State<HomeScreen> {
         'color': Colors.teal.shade400,
         'action': () => _navigateToTaskRequest('طلب مشوار بالسيارة', 'custom'),
       },
-      {
-        'name': 'سجل الطلبات',
-        'code': 'custom',
-        'icon': Icons.history,
-        'color': Colors.grey.shade600,
-        'action': () => _showComingSoon('سجل الطلبات'),
-      },
+      // {
+      //   'name': 'سجل الطلبات',
+      //   'code': 'custom',
+      //   'icon': Icons.history,
+      //   'color': Colors.grey.shade600,
+      //   'action': () => _showComingSoon('سجل الطلبات'),
+      // },
     ];
   }
 
   // دالة مضافة: للتحقق من وجود طلب نشط للعميل الحالي
   Future<int?> _checkForActiveTask(String userId, SupabaseClient client) async {
     try {
-      // حالات الطلب النشط التي يجب على العميل تتبعها
-      final activeStatuses = [
-        'pending',
-        'accepted',
-        'reached_pickup',
-        'picked_up',
-      ];
-
       final response =
           await client
               .from('tasks')
               .select('id')
               .eq('customer_id', userId)
-              .inFilter('status', activeStatuses)
+              .inFilter('status', [
+                TaskStatus.pending.name,
+                TaskStatus.accepted.name,
+              ])
               .limit(1)
               .maybeSingle();
 
-      if (response != null && response.isNotEmpty) {
-        return response['id']; // إرجاع Task ID
-      }
-      return null;
+      return response?['id'];
     } catch (e) {
-      print('Error checking for active task: $e');
-      // إذا حدث خطأ، نتجاهله ونفترض عدم وجود مهمة نشطة للسماح بالاستمرار
+      debugPrint('Error checking active task: $e');
       return null;
     }
   }
@@ -195,7 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String getRoleText() {
-    return userRole == 'driver' ? 'مُشاوِر (سائق)' : 'عميل';
+    return userRole == 'driver' ? 'طيار (سائق)' : 'عميل';
   }
 
   // ويدجت شريط التطبيق
@@ -336,40 +327,40 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
-                if (activeTaskId != null)
-                  InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (context) =>
-                                  CustomerTrackingScreen(taskId: activeTaskId),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.yellow.shade700,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: const [
-                          Text(
-                            'لديك طلب شغّال! اضغط هنا للتتبع',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          Icon(Icons.arrow_forward_ios, color: Colors.white),
-                        ],
-                      ),
-                    ),
-                  ),
+                // if (activeTaskId != null)
+                // InkWell(
+                //   onTap: () {
+                //     Navigator.push(
+                //       context,
+                //       MaterialPageRoute(
+                //         builder:
+                //             (context) =>
+                //                 CustomerTrackingScreen(taskId: activeTaskId),
+                //       ),
+                //     );
+                //   },
+                //   child: Container(
+                //     padding: const EdgeInsets.all(12),
+                //     margin: const EdgeInsets.only(bottom: 16),
+                //     decoration: BoxDecoration(
+                //       color: Colors.yellow.shade700,
+                //       borderRadius: BorderRadius.circular(12),
+                //     ),
+                //     child: Row(
+                //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                //       children: const [
+                //         Text(
+                //           'لديك طلب شغّال! اضغط هنا للتتبع',
+                //           style: TextStyle(
+                //             fontWeight: FontWeight.bold,
+                //             color: Colors.white,
+                //           ),
+                //         ),
+                //         Icon(Icons.arrow_forward_ios, color: Colors.white),
+                //       ],
+                //     ),
+                //   ),
+                // ),
                 Expanded(child: _buildServiceList()),
               ],
             ),

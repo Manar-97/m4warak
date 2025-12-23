@@ -115,17 +115,27 @@ class _AcceptedTasksScreenState extends State<AcceptedTasksScreen> {
               ? const Center(child: CircularProgressIndicator())
               : _tasks.isEmpty
               ? const Center(child: Text('لا توجد مهام حالياً'))
-              : ListView.builder(
-                itemCount: _tasks.length,
-                itemBuilder: (context, i) {
-                  final task = _tasks[i];
-                  return TaskCard(
-                    task: task,
-                    distance: _distance(task),
-                    showFinishButton: true,
-                    onAccept: () => _finishTask(task),
-                  );
-                },
+              : RefreshIndicator(
+                onRefresh: () async {
+                  // لتحديث المهام، نعيد استدعاء الاشتراك
+                  setState(() {
+                    _loading = true;
+                  });
+                  await Future.delayed(const Duration(milliseconds: 500));
+                  _subscribeTasks();
+                }, // هذا سيجلب المهام مرة أخرى
+                child: ListView.builder(
+                  itemCount: _tasks.length,
+                  itemBuilder: (context, i) {
+                    final task = _tasks[i];
+                    return TaskCard(
+                      task: task,
+                      distance: _distance(task),
+                      showFinishButton: true,
+                      onAccept: () => _finishTask(task),
+                    );
+                  },
+                ),
               ),
     );
   }

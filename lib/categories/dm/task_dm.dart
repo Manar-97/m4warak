@@ -80,9 +80,9 @@ class TaskDM {
 }
 
 enum TaskStatus {
-  pending, // pending
-  accepted, // بدل accepted
-  delivered, // delivered
-  cancelled,
-  completed, // بدل canceled
+  pending, // في انتظار قبول المشاوِر
+  accepted, // تم القبول
+  delivered, // تم التسليم
+  cancelled, // تم الإلغاء
+  completed, // تم الإنهاء
 }

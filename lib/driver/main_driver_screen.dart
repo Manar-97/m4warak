@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'driver_home.dart';
 import 'driver_profile.dart';
-import 'driver_setting.dart';
 
 class MainDriverScreen extends StatefulWidget {
   const MainDriverScreen({super.key});
@@ -13,11 +12,7 @@ class MainDriverScreen extends StatefulWidget {
 class _MainDriverScreenState extends State<MainDriverScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> screens = [
-    DriverHomeScreen(),
-    DriverProfileScreen(),
-    DriverSettingScreen(),
-  ];
+  final List<Widget> screens = [DriverHomeScreen(), DriverProfileScreen()];
 
   @override
   Widget build(BuildContext context) {
@@ -32,11 +27,7 @@ class _MainDriverScreenState extends State<MainDriverScreen> {
         },
         items: [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart),
-            label: 'Cart',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Setting'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
         selectedItemColor: Colors.black,
         unselectedItemColor: Colors.grey,

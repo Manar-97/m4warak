@@ -6,6 +6,30 @@ class CustomerNotificationsScreen extends StatelessWidget {
   const CustomerNotificationsScreen({super.key});
   static const String routeName = 'customer_notifications';
 
+  Future<Map<String, dynamic>?> _getCustomerName(int taskId) async {
+    // جلب بيانات المهمة
+    final task =
+        await Supabase.instance.client
+            .from('tasks')
+            .select('customer_id')
+            .eq('id', taskId)
+            .maybeSingle();
+
+    if (task == null) return null;
+
+    final customerId = task['customer_id'];
+
+    // جلب اسم العميل من جدول profiles
+    final profile =
+        await Supabase.instance.client
+            .from('profiles')
+            .select('full_name')
+            .eq('id', customerId)
+            .maybeSingle();
+
+    return profile;
+  }
+
   @override
   Widget build(BuildContext context) {
     final supabase = Supabase.instance.client;
@@ -24,7 +48,7 @@ class CustomerNotificationsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('الإشعارات'),
+        title: const Text('الإشعارات', style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.teal,
       ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
@@ -33,44 +57,50 @@ class CustomerNotificationsScreen extends StatelessWidget {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
-
           final notifications = snapshot.data!;
-
           if (notifications.isEmpty) {
             return const Center(child: Text('لا توجد إشعارات حالياً'));
           }
-
           return ListView.builder(
             itemCount: notifications.length,
             itemBuilder: (context, index) {
               final notif = notifications[index];
               final isRead = notif['read'] as bool? ?? false;
+              final taskId = notif['task_id'];
 
-              return ListTile(
-                tileColor: isRead ? Colors.white : Colors.yellow.shade100,
-                title: Text(notif['title'] ?? ''),
-                subtitle: Text(notif['body'] ?? ''),
-                trailing: Icon(
-                  isRead ? Icons.check_circle : Icons.notifications_active,
-                  color: isRead ? Colors.green : Colors.orange,
-                ),
-                onTap: () async {
-                  // تحديث حالة الإشعار إلى مقروء
-                  await supabase
-                      .from('notifications')
-                      .update({'read': true})
-                      .eq('id', notif['id']);
+              return FutureBuilder<Map<String, dynamic>?>(
+                future:
+                    taskId != null
+                        ? _getCustomerName(taskId)
+                        : Future.value(null),
+                builder: (context, snapshotName) {
+                  final customerName =
+                      snapshotName.data?['full_name'] ?? 'العميل';
+                  return ListTile(
+                    tileColor: isRead ? Colors.white : Colors.yellow.shade100,
+                    title: Text('${notif['title'] ?? ''} - $customerName'),
+                    subtitle: Text(notif['body'] ?? ''),
+                    trailing: Icon(
+                      isRead ? Icons.check_circle : Icons.notifications_active,
+                      color: isRead ? Colors.green : Colors.orange,
+                    ),
+                    onTap: () async {
+                      await Supabase.instance.client
+                          .from('notifications')
+                          .update({'read': true})
+                          .eq('id', notif['id']);
 
-                  // إذا هناك مهمة مرتبطة، فتح صفحة التقييم
-                  final taskId = notif['task_id'];
-                  if (taskId != null) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => RateDriverScreen(taskId: taskId),
-                      ),
-                    );
-                  }
+                      if (taskId != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => RateDriverScreen(taskId: taskId),
+                          ),
+                        );
+                      }
+                    },
+                  );
                 },
               );
             },

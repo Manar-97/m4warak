@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:mshawer/auth/login.dart';
 import 'package:mshawer/profile.dart';
-import 'package:mshawer/setting.dart';
-import 'package:mshawer/tasks/active_task.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'auth/auth_wrapper.dart';
 import 'auth/signup.dart';
-import 'categories/dm/task_dm.dart';
 import 'customer/customer_notifications.dart';
 import 'driver/accepted_task.dart';
 import 'driver/driver_home.dart';
+import 'driver/driver_notification.dart';
 import 'driver/driver_rating.dart';
 import 'driver/driver_profile.dart';
-import 'driver/driver_setting.dart';
 import 'driver/main_driver_screen.dart';
 import 'customer/rate_driver.dart';
 import 'tasks/customer_tracking.dart';
@@ -51,9 +48,7 @@ class MyApp extends StatelessWidget {
         MainDriverScreen.routeName: (_) => const MainDriverScreen(),
         DriverHomeScreen.routeName: (_) => const DriverHomeScreen(),
         ProfileScreen.routeName: (_) => const ProfileScreen(),
-        SettingScreen.routeName: (_) => const SettingScreen(),
         DriverProfileScreen.routeName: (_) => const DriverProfileScreen(),
-        DriverSettingScreen.routeName: (_) => const DriverSettingScreen(),
         NewTaskRequestScreen.routeName: (context) {
           return const NewTaskRequestScreen(
             serviceName: 'تجهيز الطلب',
@@ -64,16 +59,11 @@ class MyApp extends StatelessWidget {
         AcceptedTasksScreen.routeName: (context) => const AcceptedTasksScreen(),
         CustomerNotificationsScreen.routeName:
             (context) => const CustomerNotificationsScreen(),
+        DriverNotificationsScreen.routeName:
+            (context) => const DriverNotificationsScreen(),
       },
       // توفير onGenerateRoute لمعالجة المسارات التي تتطلب وسيطات
       onGenerateRoute: (settings) {
-        // مسار المهمة النشطة للمشاوِر
-        if (settings.name == ActiveTaskScreen.routeName) {
-          final task = settings.arguments as TaskDM;
-          return MaterialPageRoute(
-            builder: (context) => ActiveTaskScreen(initialTask: task),
-          );
-        }
         // مسار تتبع الطلب للعميل
         if (settings.name == CustomerTrackingScreen.routeName) {
           final taskId = settings.arguments as int;
@@ -98,6 +88,7 @@ class MyApp extends StatelessWidget {
         return null; // دع المسارات الأخرى تعمل بشكل طبيعي
       },
       initialRoute: MainDriverScreen.routeName,
+      // initialRoute: MainScreen.routeName,
     );
   }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mshawer/profile.dart';
-import 'package:mshawer/setting.dart';
+import 'customer/customer_tasks.dart';
 import 'home.dart';
 
 class MainScreen extends StatefulWidget {
@@ -13,7 +13,11 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> screens = [HomeScreen(), ProfileScreen(), SettingScreen()];
+  final List<Widget> screens = [
+    HomeScreen(),
+    CustomerTasksScreen(),
+    ProfileScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +36,7 @@ class _MainScreenState extends State<MainScreen> {
             icon: Icon(Icons.shopping_cart),
             label: 'Cart',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Setting'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
         selectedItemColor: Colors.black,
         unselectedItemColor: Colors.grey,

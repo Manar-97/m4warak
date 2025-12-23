@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/category_card.dart';
 import 'accepted_task.dart';
+import 'driver_notification.dart';
 import 'driver_rating.dart';
 import 'driver_tasks.dart';
 
@@ -110,6 +111,14 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
       centerTitle: true,
       backgroundColor: Colors.indigo.shade800,
       foregroundColor: Colors.white,
+      actions: [
+        IconButton(
+          onPressed: () {
+            Navigator.pushNamed(context, DriverNotificationsScreen.routeName);
+          },
+          icon: Icon(Icons.notifications),
+        ),
+      ],
     );
   }
 
@@ -148,10 +157,42 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'أهلاً بك، $displayName 👋',
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              textDirection: TextDirection.rtl,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'أهلاً بك، $displayName 👋',
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textDirection: TextDirection.rtl,
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color:
+                        userRole == 'driver'
+                            ? Colors.blue.shade100
+                            : Colors.teal.shade100,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    getRoleText(),
+                    style: TextStyle(
+                      color:
+                          userRole == 'driver'
+                              ? Colors.blue.shade800
+                              : Colors.teal.shade800,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           Expanded(child: _buildServiceList()),

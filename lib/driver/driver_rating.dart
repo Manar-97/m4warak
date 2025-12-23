@@ -12,13 +12,13 @@ class DriverRatingsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('تقييم السائق',style: TextStyle(color: Colors.white),),
+        title: const Text('تقييماتي', style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.indigo.shade800,
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: supabase
             .from('driver_ratings')
-            .select('rating, notes, created_at, task_id')
+            .select('rating, notes, created_at, task_id, customer_id')
             .eq('driver_id', driverId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
